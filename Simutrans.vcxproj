@@ -48,6 +48,14 @@
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkIncremental>
     <EmbedManifest Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</EmbedManifest>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <IncludePath>C:\Userdata\Simutrans\simutrans_thirdparty\OpenTTD essentials\shared\include;C:\Userdata\Simutrans\simutrans_thirdparty\pthreads\Pre-built.2\include;C:\Userdata\Simutrans\simutrans_thirdparty\bzlib;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Userdata\Simutrans\simutrans_thirdparty\OpenTTD essentials\win32\library;C:\Userdata\Simutrans\simutrans_thirdparty\pthreads\Pre-built.2\lib\x86;C:\Userdata\Simutrans\simutrans_thirdparty\bzlib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <IncludePath>C:\Userdata\Simutrans\simutrans_thirdparty\OpenTTD essentials\shared\include;C:\Userdata\Simutrans\simutrans_thirdparty\pthreads\Pre-built.2\include;C:\Userdata\Simutrans\simutrans_thirdparty\bzlib;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Userdata\Simutrans\simutrans_thirdparty\OpenTTD essentials\win32\library;C:\Userdata\Simutrans\simutrans_thirdparty\pthreads\Pre-built.2\lib\x86;C:\Userdata\Simutrans\simutrans_thirdparty\bzlib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <PreBuildEvent>
       <Command>cscript.exe //Nologo revision.jse</Command>
@@ -57,7 +65,7 @@
       <InlineFunctionExpansion>Default</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>NOMINMAX;WIN32_LEAN_AND_MEAN;WINVER=_WIN32_WINNT_WINXP;REVISION_FROM_FILE;LITTLE_ENDIAN;DEBUG=3;COLOUR_DEPTH=16;MULTI_THREAD=2;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NOMINMAX;WIN32_LEAN_AND_MEAN;WINVER=_WIN32_WINNT_WINXP;REVISION_FROM_FILE;LITTLE_ENDIAN;DEBUG=3;COLOUR_DEPTH=16;MULTI_THREAD=2;%(PreprocessorDefinitions);ZLIB_WINAPI</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -92,7 +100,7 @@
       <InlineFunctionExpansion>Default</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>NOMINMAX;WIN32_LEAN_AND_MEAN;WINVER=_WIN32_WINNT_WINXP;LITTLE_ENDIAN;DEBUG=3;COLOUR_DEPTH=16;MULTI_THREAD=4;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NOMINMAX;WIN32_LEAN_AND_MEAN;WINVER=_WIN32_WINNT_WINXP;LITTLE_ENDIAN;DEBUG=3;COLOUR_DEPTH=16;MULTI_THREAD=4;%(PreprocessorDefinitions);ZLIB_WINAPI</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <ExceptionHandling>Sync</ExceptionHandling>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
