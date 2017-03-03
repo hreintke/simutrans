@@ -2872,6 +2872,16 @@ void fabrik_t::info_conn(cbuffer_t& buf) const
 				else {
 					buf.printf("\n   %s (%d,%d)", fab->get_name(), lieferziel.x, lieferziel.y);
 				}
+				int w = get_matched_eingang(fab);
+				int ra = get_route_info(fab, fab->get_eingang()[w].get_typ());
+				buf.printf(" (%d) (%s) %s %d,%d,%d",
+					koord_distance(this->get_pos(), fab->get_pos()),
+					(ra == haltestelle_t::ROUTE_OK) ? "R" : ((ra == haltestelle_t::ROUTE_OVERCROWDED) ? "O" : "N"),
+					translator::translate(fab->get_eingang()[w].get_typ()->get_name()),
+					(sint32)(0.5 + fab->get_eingang()[w].menge / (double)(1 << precision_bits)),
+					fab->get_eingang()[w].get_in_transit(),
+					(fab->get_eingang()[w].max >> precision_bits)
+					);
 			}
 		}
 	}
@@ -2891,7 +2901,18 @@ void fabrik_t::info_conn(cbuffer_t& buf) const
 				else {
 					buf.printf("\n   %s (%d,%d)", src->get_name(), supplier.x, supplier.y);
 				}
-			}
+
+				int w = get_matched_ausgang(src);
+				int ra = src->get_route_info(this, src->get_ausgang()[w].get_typ());
+				buf.printf(" (%d) (%s) %s %d,%d",
+					koord_distance(this->get_pos(), src->get_pos()),
+					(ra == haltestelle_t::ROUTE_OK) ? "R" : ((ra == haltestelle_t::ROUTE_OVERCROWDED) ? "O" : "N"),
+					translator::translate(src->get_ausgang()[w].get_typ()->get_name()),
+					(sint32)(0.5 + src->get_ausgang()[w].menge / (double)(1 << precision_bits)),
+					(src->get_ausgang()[w].max >> precision_bits)
+					);
+
+					}
 		}
 	}
 
@@ -3177,4 +3198,77 @@ slist_tpl<const goods_desc_t*> *fabrik_t::get_produced_goods() const
 	}
 
 	return goods;
+}
+int fabrik_t::get_route_info (const fabrik_t *fb,const goods_desc_t *wr ) const
+{
+	int Routeavail = haltestelle_t::NO_ROUTE;
+	
+	const planquadrat_t *plan = welt->access(pos.get_2d());
+	
+	if(  plan->get_haltlist_count() == 0  ) {
+		Routeavail = haltestelle_t::NO_ROUTE;
+	}
+	else
+	{
+	const halthandle_t *haltlist = plan->get_haltlist();
+	for(  unsigned i=0;  i<plan->get_haltlist_count();  i++  ) {
+		halthandle_t halt = haltlist[i];
+		if(  !halt->get_ware_enabled()  ) {
+				continue;
+		}
+		//inside for loop
+		ware_t ware(wr);
+
+		ware.menge = 1;
+		ware.to_factory = 1;
+		ware.set_zielpos( fb->pos.get_2d() );
+
+		Routeavail = haltestelle_t::search_route(&halt, 1U, welt->get_settings().is_no_routing_over_overcrowding(), ware);
+		if(  Routeavail == haltestelle_t::ROUTE_OK  ||  Routeavail == haltestelle_t::ROUTE_WALK  ) {
+		// we can deliver to this destination
+			Routeavail = haltestelle_t::ROUTE_OK;
+			break;
+		}
+	}
+	}
+
+	return Routeavail;
+}
+
+uint32 fabrik_t::get_matched_eingang(const fabrik_t *fb) const
+{
+	int w = -1;
+	bool mf = false;
+	// find the index in the target factory
+	while (!mf && w < (int)fb->get_eingang().get_count() - 1) {
+		int x = -1;
+		w++;
+		while (!mf && x < (int)ausgang.get_count() - 1) {
+			x++;
+			mf = (fb->get_eingang()[w].get_typ() == ausgang[x].get_typ());
+		}
+	}
+	return w;
+}
+
+uint32 fabrik_t::get_matched_ausgang(const fabrik_t *fb) const
+{
+	int w = -1;
+	bool mf = false;
+	// find the index in the target factory
+	DBG_DEBUG("smimfab ", "Producers %d ", (int)fb->get_ausgang().get_count());
+	while (!mf && w < (int)fb->get_ausgang().get_count() - 1) {
+		DBG_DEBUG("simfab", "w = %d", w);
+		int x = -1;
+		w++;
+		while (!mf && x < (int)eingang.get_count() - 1) {
+			x++;
+			DBG_DEBUG("simfab", "x = %d", x);
+
+			mf = (fb->get_ausgang()[w].get_typ() == eingang[x].get_typ());
+		}
+	}
+	DBG_DEBUG("simfab", "return  = %d", w);
+
+	return w;
 }
