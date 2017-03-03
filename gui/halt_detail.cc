@@ -19,6 +19,7 @@
 
 #include "../dataobj/translator.h"
 #include "../dataobj/loadsave.h"
+#include "../dataobj/schedule.h"
 
 #include "../player/simplay.h"
 
@@ -210,7 +211,19 @@ void halt_detail_t::halt_detail_info()
 			}
 
 			// Line labels with color of player
-			label_names.append( strdup(halt->registered_lines[i]->get_name()) );
+			cbuffer_t b;
+			schedule_t *fpl;
+			b.printf("%s <%d> ", halt->registered_lines[i]->get_name(), halt->registered_lines[i]->count_convoys());
+			fpl = halt->registered_lines[i]->get_schedule();
+			uint8 count = fpl->get_count();
+			for (uint8 ii = 0; ii<count; ii++) {
+				halthandle_t fpl_halt = haltestelle_t::get_halt(fpl->entries[ii].pos, welt->get_active_player());
+				if (fpl_halt.is_bound() && (fpl_halt == halt)) {
+					b.printf("(%d,%d) ", fpl->entries[ii].minimum_loading , fpl->entries[ii].waiting_time_shift);
+				}
+			}
+			label_names.append(strdup(b));
+			//			label_names.append( strdup(halt->registered_lines[i]->get_name()) );
 			gui_label_t *l = new gui_label_t( label_names.back(), PLAYER_FLAG|(halt->registered_lines[i]->get_owner()->get_player_color1()+0) );
 			l->set_pos( scr_coord(D_MARGIN_LEFT+D_BUTTON_HEIGHT+D_H_SPACE, offset_y) );
 			linelabels.append( l );
