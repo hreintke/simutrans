@@ -109,6 +109,8 @@
 #include "player/ai_goods.h"
 #include "player/ai_scripted.h"
 
+#include "mongoose.h"
+
 // forward declaration - management of rotation for scripting
 namespace script_api
 {
@@ -1986,6 +1988,9 @@ karte_t::karte_t() :
 	attractions(16),
 	stadt(0)
 {
+	const char *options[] = { "listening_ports", "8080", NULL };
+	ctx = mg_start(&callback, this, options);
+
 	destroying = false;
 
 	// length of day and other time stuff
@@ -6855,4 +6860,132 @@ const vector_tpl<const goods_desc_t*> &karte_t::get_goods_list()
 player_t *karte_t::get_public_player() const
 {
 	return get_player(1);
+}
+
+void *karte_t::callback(enum mg_event event,
+struct mg_connection *conn) {
+	const struct mg_request_info *request_info = mg_get_request_info(conn);
+
+	karte_t *myworld = (karte_t*)request_info->user_data;
+
+	DBG_DEBUG("request", "request");
+
+	if (event == MG_NEW_REQUEST) {
+		cbuffer_t buf;
+		buf.clear();
+		buf.printf(
+			"Hello from Simutrans! Remote port: %d,\n numfab = %d \n rm = %s \n uri = %s \n http = %s\n",
+			request_info->remote_port, myworld->get_fab_list().get_count(),
+			request_info->request_method, request_info->uri, request_info->http_version
+			);
+		for (int i = 0; i < request_info->num_headers; i++) {
+			buf.printf("HTTP header [%s]: [%s]\n",
+				request_info->http_headers[i].name,
+				request_info->http_headers[i].value);
+		}
+		buf.printf("Query string: [%s]\n",
+			request_info->query_string);
+		buf.printf("Remote IP: [%lu]\n", request_info->remote_ip);
+		buf.printf("Remote port: [%d]\n", request_info->remote_port);
+		buf.printf("Remote user: [%s]\n",
+			request_info->remote_user ? request_info->remote_user : "");
+
+		minivec_tpl<char*> commands;
+
+
+		char * pch;
+
+		buf.printf("Splitting string \"%s\" into tokens:\n", request_info->uri);
+		pch = strtok((char *)request_info->uri, "/");
+
+		while (pch != NULL)
+		{
+			commands.append(pch);
+			buf.printf("%s\n", pch);
+			pch = strtok(NULL, "/");
+		}
+
+		buf.append("minivec reading\n");
+		FOR(minivec_tpl<char*>, const cmd, commands) {
+			buf.append(cmd);
+			buf.append("\n");
+		};
+		buf.append("end minivec reading\n");
+
+		if (strcmp(request_info->uri, "/fab") == 0){
+			for (uint32 i = 0; i < myworld->get_fab_list().get_count(); i++) {
+				buf.printf("..................\r\n");
+				buf.printf("Fab number = %d, Fab name = %s\n", i, myworld->get_fab_list().at(i)->get_name());
+				cbuffer_t h;
+				myworld->get_fab(i)->info_prod(h);
+				buf.append(h);
+				buf.append("\n\n"); 
+				myworld->get_fab(i)->info_conn(h);
+				buf.append(h);
+//				myworld->get_fab(i)->info_transit_goods(h);
+//				buf.append(h);
+				buf.append("\n\n");
+			}
+		};
+
+		if (strcmp(request_info->uri, "/convoy") == 0){
+			int cc = 0;
+			FOR(vector_tpl<convoihandle_t>, const cnv, myworld->convoys()) {
+
+				buf.printf("cnv number = %d, cnv name = %s, year profit %d\n", cc++, cnv->get_name(), cnv->get_jahresgewinn());
+				for (int i = 0; i < cnv->get_vehicle_count(); i++) {
+					buf.printf("   veh %d, %s %s\n", i,
+						translator::translate(cnv->get_vehikel(i)->get_desc()->get_name()),
+						translator::translate(cnv->get_vehikel(i)->get_cargo_type()->get_catg_name()));
+				}
+			}
+		};
+		if (strcmp(request_info->uri, "/goods") == 0){
+			int gc = 0;
+			
+			FOR(vector_tpl<const goods_desc_t*>, const gd, myworld->get_goods_list()) {
+				buf.printf("Good %d, %s, Cat %s\n", gc++,
+					//										 gd->get_name(),
+					//										 gd->get_catg_name());
+					translator::translate(gd->get_name()),
+					translator::translate(gd->get_catg_name()));
+			}
+
+			for (uint i = 0; i < goods_manager_t::get_count(); i++){
+				const goods_desc_t *vg1 = goods_manager_t::get_info(i);
+				buf.printf("Goods %d %d %d %s \n", i, vg1->get_catg_index(), vg1->get_catg(),
+					translator::translate(vg1->get_name()),
+					translator::translate(vg1->get_catg_name()));
+			}
+		};
+		if (strcmp(request_info->uri, "/message") == 0){
+
+			for (uint32 i = 0; i < myworld->get_message()->get_list().get_count(); i++) {
+				int t = 10;
+				buf.printf("Msg number = %d, Date %d.%d, msg = %s\n",
+					i,
+					(myworld->get_message()->get_list().at(i)->time % 12) + 1,
+					myworld->get_message()->get_list().at(i)->time / 12,
+					make_single_line_string(myworld->get_message()->get_list().at(i)->msg, t)
+					);
+			}
+		};
+
+		buf.printf("length = %d\n", buf.len());
+		mg_printf(conn,
+			"HTTP/1.1 200 OK\r\n"
+			"Content-Type: text/plain\r\n"
+			"Content-Length: %d\r\n"        // Always set Content-Length
+			"\r\n",
+			buf.len());
+		mg_write(conn, buf, buf.len());
+		// Mark as processed
+
+
+		return "";
+	}
+	else {
+		return NULL;
+	}
+
 }
