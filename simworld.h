@@ -93,8 +93,11 @@ class karte_t
 	static karte_t* world; ///< static single instance
 
 public:
-	/**
-	 * Height of a point of the map with "perlin noise"
+	
+	struct mg_context *ctx;
+	static void *karte_t::callback(enum mg_event event, struct mg_connection *conn);
+
+	 /* Height of a point of the map with "perlin noise"
 	 *
 	 * @param frequency in 0..1.0 roughness, the higher the rougher
 	 * @param amplitude in 0..160.0 top height of mountains, may not exceed 160.0!!!
