@@ -6970,6 +6970,27 @@ struct mg_connection *conn) {
 					);
 			}
 		};
+		if (strcmp(request_info->uri, "/line") == 0){
+			int lc = 0;
+			vector_tpl<linehandle_t> all_lines(0);
+			myworld->get_active_player()->simlinemgmt.get_lines(simline_t::line, &all_lines);
+			FOR(vector_tpl<linehandle_t>, const line_entry, all_lines) {
+				buf.printf("Line number %d, Line name %s, numconvoys = %d, Type = %d\n", lc, line_entry->get_name(), line_entry->count_convoys(), line_entry->get_linetype());
+				schedule_t *fpl;
+				fpl = line_entry->get_schedule();
+				const uint8 count = fpl->get_count();
+				for (uint8 i = 0; i < count; i++) {
+					halthandle_t plan_halt = haltestelle_t::get_halt(fpl->entries[i].pos, myworld->get_active_player());
+					if (plan_halt.is_bound()) {
+						buf.printf("Halt %s %d\n", plan_halt->get_name(), fpl->entries[i].minimum_loading);
+					}
+					else {
+						buf.printf("Halt %s %d\n", "Unbound", fpl->entries[i].minimum_loading);
+					}
+				}
+				lc++;
+			}
+		};
 
 		buf.printf("length = %d\n", buf.len());
 		mg_printf(conn,
