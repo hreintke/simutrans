@@ -285,9 +285,10 @@ private:
 		}
 	};
 
+public:
 	/// All links to networks of all freight categories, filled by rebuild_connected_components.
 	link_t* all_links;
-
+private:
 	/**
 	 * Fills in catg_connected_component values for all halts and all categories.
 	 * Uses depth-first search.

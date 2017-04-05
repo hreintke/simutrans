@@ -6970,6 +6970,7 @@ struct mg_connection *conn) {
 					);
 			}
 		};
+
 		if (strcmp(request_info->uri, "/line") == 0){
 			int lc = 0;
 			vector_tpl<linehandle_t> all_lines(0);
@@ -6992,6 +6993,37 @@ struct mg_connection *conn) {
 			}
 		};
 
+		if (strcmp(request_info->uri, "/halt") == 0){
+			int hc = 0;
+			FOR(vector_tpl<halthandle_t>, const s, haltestelle_t::get_alle_haltestellen()) {
+				buf.printf("Halt number %d, ID = %d, Halt %s, capacity = %d ", hc, s.get_id(), s->get_name(), s->get_capacity(0));
+				cbuffer_t h;
+				s->get_short_freight_info(h);
+				buf.append(h); // includes final newline
+				FOR(vector_tpl<linehandle_t>, haltline, s->registered_lines){
+					buf.printf("line tp = %d %s cnv = %d ", haltline->get_linetype(), haltline->get_name(), haltline->count_convoys());
+					schedule_t *fpl;
+					fpl = haltline->get_schedule();
+					const uint8 count = fpl->get_count();
+					for (uint8 i = 0; i < count; i++) {
+						halthandle_t plan_halt = haltestelle_t::get_halt(fpl->entries[i].pos, myworld->get_active_player());
+						if (plan_halt.is_bound() && (plan_halt == s)) {
+							buf.printf("(%d,%d) ", fpl->entries[i].minimum_loading, fpl->entries[i].waiting_time_shift);
+						}
+					}
+					buf.printf("\n");
+				};
+				for (unsigned i = 0; i<goods_manager_t::get_max_catg_index(); i++) {
+					if (s->all_links[i].connections.get_count() > 0) {
+						buf.printf("ctg_idex %d, catg %s, conn %d, concount %d\n", i,
+							translator::translate(goods_manager_t::get_info_catg_index(i)->get_catg_name()),
+							s->all_links[i].catg_connected_component,
+							s->all_links[i].connections.get_count());
+					};
+				};
+				hc++;
+			}
+		}
 		buf.printf("length = %d\n", buf.len());
 		mg_printf(conn,
 			"HTTP/1.1 200 OK\r\n"
