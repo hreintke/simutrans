@@ -19,6 +19,7 @@
 
 #include <sys/stat.h>
 
+#include "simware.h"
 #include "simcity.h"
 #include "simcolor.h"
 #include "simconvoi.h"
@@ -6934,9 +6935,19 @@ struct mg_connection *conn) {
 
 				buf.printf("cnv number = %d, cnv name = %s, year profit %d\n", cc++, cnv->get_name(), cnv->get_jahresgewinn());
 				for (int i = 0; i < cnv->get_vehicle_count(); i++) {
-					buf.printf("   veh %d, %s %s\n", i,
+					buf.printf("   veh %d, %s %s", i,
 						translator::translate(cnv->get_vehikel(i)->get_desc()->get_name()),
 						translator::translate(cnv->get_vehikel(i)->get_cargo_type()->get_catg_name()));
+					const uint16 capacity = cnv->get_vehikel(i)->get_desc()->get_capacity();
+					const goods_desc_t* ware_desc = cnv->get_vehikel(i)->get_desc()->get_freight_type();
+					if (capacity>0 && ware_desc != goods_manager_t::none) {
+						uint16 actual_load = 0;
+						FOR(slist_tpl<ware_t>, ware, cnv->get_vehikel(i)->get_cargo()) {
+							actual_load += ware.menge;
+						}
+						buf.printf(" Loaded %d of %d",actual_load,capacity);
+					}
+					buf.printf("\n");
 				}
 			}
 		};
@@ -7024,6 +7035,7 @@ struct mg_connection *conn) {
 				hc++;
 			}
 		}
+
 		buf.printf("length = %d\n", buf.len());
 		mg_printf(conn,
 			"HTTP/1.1 200 OK\r\n"
