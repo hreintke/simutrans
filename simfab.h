@@ -727,6 +727,10 @@ public:
 
 	// Returns a list of goods produced by this factory.
 	slist_tpl<const goods_desc_t*> *get_produced_goods() const;
+
+	bool fabrik_t::is_connected(fabrik_t *fab, uint8 catg_index) const;
+	uint32 fabrik_t::get_matched_output(const fabrik_t *fb) const;
+	uint32 fabrik_t::get_matched_input(const fabrik_t *fb) const;
 };
 
 #endif
