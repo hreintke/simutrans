@@ -2940,7 +2940,20 @@ void fabrik_t::info_conn(cbuffer_t& buf) const
 				else {
 					buf.printf("\n   %s (%d,%d)", fab->get_name(), lieferziel.x, lieferziel.y);
 				}
-			}
+				
+				int w = get_matched_input(fab);
+//				int ra = get_route_info(fab, fab->get_eingang()[w].get_typ());
+				bool ra = is_connected(fab, fab->get_input()[w].get_typ()->get_catg_index());
+
+				buf.printf(" (%d) (%s) %s %d,%d,%d",
+					koord_distance(this->get_pos(), fab->get_pos()),
+					(ra ) ? "R" : "N",
+					translator::translate(fab->get_input()[w].get_typ()->get_name()),
+					(sint32)(0.5 + fab->get_input()[w].menge / (double)(1 << precision_bits)),
+					fab->get_input()[w].get_in_transit(),
+					(fab->get_input()[w].max >> precision_bits)
+					);
+			} 
 		}
 	}
 
@@ -2959,6 +2972,20 @@ void fabrik_t::info_conn(cbuffer_t& buf) const
 				else {
 					buf.printf("\n   %s (%d,%d)", src->get_name(), supplier.x, supplier.y);
 				}
+				
+				int w = get_matched_output(src);
+				DBG_MESSAGE("FAB", "FAB w = %d\n", w);
+//				int ra = src->get_route_info(this, src->get_ausgang()[w].get_typ());
+				bool ra = is_connected(src, src->get_output()[w].get_typ()->get_catg_index());
+				DBG_MESSAGE("FAB", "ra = %d\n", ra);
+				buf.printf(" (%d) (%s) %s %d,%d",
+					koord_distance(this->get_pos(), src->get_pos()),
+					(ra ? "R" : "N"),
+					translator::translate(src->get_output()[w].get_typ()->get_name()),
+					(sint32)(0.5 + src->get_output()[w].menge / (double)(1 << precision_bits)),
+					(src->get_output()[w].max >> precision_bits)
+					);
+				DBG_MESSAGE("FAB", "supplier OK\n");
 			}
 		}
 	}
@@ -3245,4 +3272,74 @@ slist_tpl<const goods_desc_t*> *fabrik_t::get_produced_goods() const
 	}
 
 	return goods;
+}
+
+bool fabrik_t::is_connected(fabrik_t *fab, uint8 catg_index) const
+{
+	bool Connected = false;
+
+	const planquadrat_t *plan = welt->access(pos.get_2d());
+	const planquadrat_t *fabplan = welt->access(fab->get_pos().get_2d());
+
+	if ((plan->get_haltlist_count() == 0) || (fabplan->get_haltlist_count() == 0)){
+		Connected = false;
+	}
+	else
+	{
+		const halthandle_t *haltlist = plan->get_haltlist();
+		const halthandle_t *fabhaltlist = fabplan->get_haltlist();
+
+		for (unsigned i = 0; i<plan->get_haltlist_count(); i++) {
+			halthandle_t halt = haltlist[i];
+			if (!halt->get_ware_enabled()) {
+				continue;
+			}
+			for (unsigned ii = 0; ii < fabplan->get_haltlist_count(); ii++){
+				halthandle_t fabhalt = fabhaltlist[ii];
+				if (!fabhalt->get_ware_enabled()){
+					continue;
+				}
+				if (halt->is_connected(fabhalt, catg_index) == 1) {
+					Connected = true;
+					break;
+				}
+			}
+			if (Connected) {
+				break;
+			}
+		}
+	}
+	return Connected;
+}
+
+uint32 fabrik_t::get_matched_output(const fabrik_t *fb) const
+{
+	int w = -1;
+	bool mf = false;
+	// find the index in the target factory
+	while (!mf && w < (int)fb->get_output().get_count() - 1) {
+		int x = -1;
+		w++;
+		while (!mf && x < (int)input.get_count() - 1) {
+			x++;
+			mf = (fb->get_output()[w].get_typ() == input[x].get_typ());
+		}
+	}
+	return w;
+}
+
+uint32 fabrik_t::get_matched_input(const fabrik_t *fb) const
+{
+	int w = -1;
+	bool mf = false;
+	// find the index in the target factory
+	while (!mf && w < (int)fb->get_input().get_count() - 1) {
+		int x = -1;
+		w++;
+		while (!mf && x < (int)output.get_count() - 1) {
+			x++;
+			mf = (fb->get_input()[w].get_typ() == output[x].get_typ());
+		}
+	}
+	return w;
 }
