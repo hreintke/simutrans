@@ -88,6 +88,11 @@ const char *koord3d::get_fullstr() const
 	return pos_str;
 }
 
+uint8 koord3d::get_area(uint8 xc, uint8 yc)
+{
+	return get_2d().get_area(xc,yc);
+}
+
 
 ribi_t::ribi koord3d_vector_t::get_ribi( uint32 index ) const
 {

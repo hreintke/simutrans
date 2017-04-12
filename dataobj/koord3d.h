@@ -34,6 +34,8 @@ public:
 
 	koord get_2d() const { return koord(x, y); }
 
+	uint8 get_area(uint8 xc, uint8 yc);
+
 	const koord3d& operator += (const koord3d& a)
 	{
 		x += a.x;
