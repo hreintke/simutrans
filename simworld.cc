@@ -6960,6 +6960,26 @@ struct mg_connection *conn) {
 					//										 gd->get_catg_name());
 					translator::translate(gd->get_name()),
 					translator::translate(gd->get_catg_name()));
+
+				for (uint32 i = 0; i < myworld->get_fab_list().get_count(); i++) {
+					//					myworld->get_fab(i)->get_input().get_count()
+					for (uint32 index = 0; index < myworld->get_fab(i)->get_input().get_count(); index++) {
+						{
+							if (myworld->get_fab(i)->get_input()[index].get_typ()->get_name() == gd->get_name())
+							{
+								buf.printf("%s", myworld->get_fab(i)->get_name());
+								koord3d thisPos = myworld->get_fab(i)->get_pos();
+								buf.printf(" (%d,%d,%d)", thisPos.x, thisPos.y, thisPos.z);
+
+								uint8 a1 = thisPos.x / (myworld->get_settings().get_size_x() / 2);
+								uint8 a2 = thisPos.y / (myworld->get_settings().get_size_y() / 3);
+								buf.printf("Area %d", (a1*2)+a2);
+								buf.printf("k_area %d", thisPos.get_area(2, 3));
+								buf.printf("\r\n");
+							}
+						}
+					}
+				}
 			}
 
 			for (uint i = 0; i < goods_manager_t::get_count(); i++){

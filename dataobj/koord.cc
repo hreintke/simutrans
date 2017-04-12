@@ -3,6 +3,7 @@
 #include "../display/scr_coord.h"
 #include "../utils/simrandom.h"
 #include "../simconst.h"
+#include "../simworld.h"
 
 
 // default: close and far away does not matter
@@ -182,4 +183,12 @@ koord koord::koord_random( uint16 xrange, uint16 yrange )
 	ret.x = simrand(xrange);
 	ret.y = simrand(yrange);
 	return ret;
+}
+
+uint8 koord::get_area(uint8 xc, uint8 yc)
+{
+	karte_ptr_t myworld;
+	uint8 a1 = x / (myworld->get_settings().get_size_x() / xc);
+	uint8 a2 = y / (myworld->get_settings().get_size_y() / yc);
+	return ((a1*xc) + a2);
 }
