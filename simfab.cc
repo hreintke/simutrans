@@ -1763,8 +1763,12 @@ sint8 fabrik_t::is_needed(const goods_desc_t *typ) const
 
 bool fabrik_t::is_active_lieferziel( koord k ) const
 {
-	assert( lieferziele.is_contained(k) );
-	return 0 < ( ( 1 << lieferziele.index_of(k) ) & lieferziele_active_last_month );
+	fabrik_t *fab = get_fab(k);
+	int w = get_matched_input(fab);
+	bool ra = is_connected(fab, fab->get_input()[w].get_typ()->get_catg_index());
+	return ra;
+//	assert( lieferziele.is_contained(k) );
+//	return 0 < ( ( 1 << lieferziele.index_of(k) ) & lieferziele_active_last_month );
 }
 
 sint32 fabrik_t::get_jit2_power_boost() const
@@ -2935,14 +2939,13 @@ void fabrik_t::info_conn(cbuffer_t& buf) const
 			fabrik_t *fab = get_fab( lieferziel );
 			if(fab) {
 				if(  is_active_lieferziel(lieferziel)  ) {
-					buf.printf("\n      %s (%d,%d)", fab->get_name(), lieferziel.x, lieferziel.y);
+					buf.printf("\n      %s %s", fab->get_name(), fab->get_pos().get_2d().get_fullstr());
 				}
 				else {
-					buf.printf("\n   %s (%d,%d)", fab->get_name(), lieferziel.x, lieferziel.y);
+					buf.printf("\n   %s %s", fab->get_name(), fab->get_pos().get_2d().get_fullstr());
 				}
-				
+
 				int w = get_matched_input(fab);
-//				int ra = get_route_info(fab, fab->get_eingang()[w].get_typ());
 				bool ra = is_connected(fab, fab->get_input()[w].get_typ()->get_catg_index());
 
 				buf.printf(" (%d) (%s) %s %d,%d,%d",
@@ -2967,17 +2970,14 @@ void fabrik_t::info_conn(cbuffer_t& buf) const
 		FOR(vector_tpl<koord>, const& supplier, suppliers) {
 			if(  fabrik_t *src = get_fab( supplier )  ) {
 				if(  src->is_active_lieferziel(get_pos().get_2d())  ) {
-					buf.printf("\n      %s (%d,%d)", src->get_name(), supplier.x, supplier.y);
+					buf.printf("\n      %s %s", src->get_name(), src->get_pos().get_2d().get_fullstr());
 				}
 				else {
-					buf.printf("\n   %s (%d,%d)", src->get_name(), supplier.x, supplier.y);
+					buf.printf("\n   %s %s", src->get_name(), src->get_pos().get_2d().get_fullstr());
 				}
-				
+
 				int w = get_matched_output(src);
-				DBG_MESSAGE("FAB", "FAB w = %d\n", w);
-//				int ra = src->get_route_info(this, src->get_ausgang()[w].get_typ());
 				bool ra = is_connected(src, src->get_output()[w].get_typ()->get_catg_index());
-				DBG_MESSAGE("FAB", "ra = %d\n", ra);
 				buf.printf(" (%d) (%s) %s %d,%d",
 					koord_distance(this->get_pos(), src->get_pos()),
 					(ra ? "R" : "N"),
@@ -2985,7 +2985,6 @@ void fabrik_t::info_conn(cbuffer_t& buf) const
 					(sint32)(0.5 + src->get_output()[w].menge / (double)(1 << precision_bits)),
 					(src->get_output()[w].max >> precision_bits)
 					);
-				DBG_MESSAGE("FAB", "supplier OK\n");
 			}
 		}
 	}

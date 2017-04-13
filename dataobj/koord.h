@@ -36,7 +36,7 @@ public:
 	const char *get_str() const;
 	const char *get_fullstr() const;	// including brackets
 
-	uint8 get_area(uint8 xc, uint8 yc);
+	uint8 get_area() const;
 
 	const koord& operator += (const koord & k)
 	{

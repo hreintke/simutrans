@@ -172,7 +172,7 @@ const char *koord::get_fullstr() const
 	if(x==-1  &&  y==-1) {
 		return "koord invalid";
 	}
-	sprintf( pos_str, "(%i,%i)", x, y );
+	sprintf( pos_str, "(%i,%i:%i)", x, y, get_area() );
 	return pos_str;
 }
 
@@ -185,10 +185,13 @@ koord koord::koord_random( uint16 xrange, uint16 yrange )
 	return ret;
 }
 
-uint8 koord::get_area(uint8 xc, uint8 yc)
+#define XC 3
+#define YC 3
+
+uint8 koord::get_area() const
 {
 	karte_ptr_t myworld;
-	uint8 a1 = x / (myworld->get_settings().get_size_x() / xc);
-	uint8 a2 = y / (myworld->get_settings().get_size_y() / yc);
-	return ((a1*xc) + a2);
+	uint8 a1 = x / (myworld->get_settings().get_size_x() / XC);
+	uint8 a2 = y / (myworld->get_settings().get_size_y() / YC);
+	return ((a1*YC) + a2);
 }
