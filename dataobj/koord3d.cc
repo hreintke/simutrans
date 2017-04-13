@@ -84,13 +84,13 @@ const char *koord3d::get_fullstr() const
 	if(x==-1  &&  y==-1  &&  z==-1) {
 		return "koord3d invalid";
 	}
-	sprintf( pos_str, "(%i,%i,%i)", x, y, z );
+	sprintf( pos_str, "(%i,%i,%i:%i)", x, y, z, get_area() );
 	return pos_str;
 }
 
-uint8 koord3d::get_area(uint8 xc, uint8 yc)
+uint8 koord3d::get_area() const
 {
-	return get_2d().get_area(xc,yc);
+	return get_2d().get_area();
 }
 
 
