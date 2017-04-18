@@ -6967,7 +6967,21 @@ struct mg_connection *conn) {
 						{
 							if (myworld->get_fab(i)->get_input()[index].get_typ()->get_name() == gd->get_name())
 							{
-								buf.printf("%s", myworld->get_fab(i)->get_name());
+								buf.printf("  I %s", myworld->get_fab(i)->get_name());
+								koord3d thisPos = myworld->get_fab(i)->get_pos();
+								buf.printf(" %s", thisPos.get_fullstr());
+								buf.printf("\r\n");
+							}
+						}
+					}
+				}
+				for (uint32 i = 0; i < myworld->get_fab_list().get_count(); i++) {
+					//					myworld->get_fab(i)->get_input().get_count()
+					for (uint32 index = 0; index < myworld->get_fab(i)->get_output().get_count(); index++) {
+						{
+							if (myworld->get_fab(i)->get_output()[index].get_typ()->get_name() == gd->get_name())
+							{
+								buf.printf("  O %s", myworld->get_fab(i)->get_name());
 								koord3d thisPos = myworld->get_fab(i)->get_pos();
 								buf.printf(" %s", thisPos.get_fullstr());
 								buf.printf("\r\n");
