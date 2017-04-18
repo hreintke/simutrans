@@ -2946,11 +2946,8 @@ void fabrik_t::info_conn(cbuffer_t& buf) const
 				}
 
 				int w = get_matched_input(fab);
-				bool ra = is_connected(fab, fab->get_input()[w].get_typ()->get_catg_index());
-
-				buf.printf(" (%d) (%s) %s %d,%d,%d",
+				buf.printf(" (%d) %s %d,%d,%d",
 					koord_distance(this->get_pos(), fab->get_pos()),
-					(ra ) ? "R" : "N",
 					translator::translate(fab->get_input()[w].get_typ()->get_name()),
 					(sint32)(0.5 + fab->get_input()[w].menge / (double)(1 << precision_bits)),
 					fab->get_input()[w].get_in_transit(),
@@ -2977,10 +2974,8 @@ void fabrik_t::info_conn(cbuffer_t& buf) const
 				}
 
 				int w = get_matched_output(src);
-				bool ra = is_connected(src, src->get_output()[w].get_typ()->get_catg_index());
-				buf.printf(" (%d) (%s) %s %d,%d",
+				buf.printf(" (%d) %s %d,%d",
 					koord_distance(this->get_pos(), src->get_pos()),
-					(ra ? "R" : "N"),
 					translator::translate(src->get_output()[w].get_typ()->get_name()),
 					(sint32)(0.5 + src->get_output()[w].menge / (double)(1 << precision_bits)),
 					(src->get_output()[w].max >> precision_bits)
