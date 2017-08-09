@@ -603,6 +603,7 @@ void fabrik_t::recalc_storage_capacities()
 					// Inputs are now normalized to factory production.
 					uint32 prod_factor = input->get_consumption();
 					g.max = (sint32)(((((sint64)input->get_capacity() * (sint64)prodbase) << (precision_bits + DEFAULT_PRODUCTION_FACTOR_BITS)) + (sint64)(prod_factor - 1)) / ((sint64)desc->get_productivity() * (sint64)prod_factor));
+					DBG_MESSAGE("rescale", "input %s %d\n",get_name(), g.max);
 				}
 			}
 		}
@@ -614,6 +615,8 @@ void fabrik_t::recalc_storage_capacities()
 					// Outputs are now normalized to factory production.
 					uint32 prod_factor = output->get_factor();
 					g.max = (sint32)(((((sint64)output->get_capacity() * (sint64)prodbase) << (precision_bits + DEFAULT_PRODUCTION_FACTOR_BITS)) + (sint64)(prod_factor - 1)) / ((sint64)desc->get_productivity() * (sint64)prod_factor));
+					DBG_MESSAGE("rescale", "output %s %d",get_name(), g.max);
+					DBG_MESSAGE("rescale", "capacity : %d, prodbase : %d, product %d", uint32(output->get_capacity()), uint32(prodbase), uint32(desc->get_productivity()));
 				}
 			}
 		}
@@ -2881,6 +2884,8 @@ void fabrik_t::info_prod(cbuffer_t& buf) const
 
 				buf.printf(", %u%%", (uint32)((FAB_PRODFACT_UNIT_HALF + (sint32)pfactor * 100) >> DEFAULT_PRODUCTION_FACTOR_BITS));
 			}
+			buf.printf("\nmenge = %u, max = %u, pf = %u, fdu %u", (uint32)output[index].menge, (uint32)output[index].max, (uint32)pfactor, (uint32)FAB_DISPLAY_UNIT_HALF);
+			buf.printf("\ndmx %u, %u, %u", (uint32)(FAB_DISPLAY_UNIT_HALF + (sint64)output[index].max * pfactor), (uint32)output[index].max * pfactor, (uint32)FAB_DISPLAY_UNIT_HALF);
 		}
 	}
 
