@@ -6913,6 +6913,9 @@ struct mg_connection *conn) {
 		};
 		buf.append("end minivec reading\n");
 
+		buf.printf("JIT type used : %d\r", myworld->get_settings().get_just_in_time());
+		buf.printf("max intransit perc : %d\r\n", myworld->get_settings().get_factory_maximum_intransit_percentage());
+
 		if (strcmp(request_info->uri, "/fab") == 0){
 			for (uint32 i = 0; i < myworld->get_fab_list().get_count(); i++) {
 				buf.printf("..................\r\n");
@@ -6926,7 +6929,23 @@ struct mg_connection *conn) {
 //				myworld->get_fab(i)->info_transit_goods(h);
 //				buf.append(h);
 				buf.append("\n\n");
-			}
+				if (!myworld->get_fab_list().at(i)->get_output().empty()) {
+					buf.append("\n\n");
+					buf.append(translator::translate("Produktion\n"));
+
+					for (uint32 index = 0; index < myworld->get_fab_list().at(i)->get_output().get_count(); index++) {
+						const goods_desc_t * type = myworld->get_fab_list().at(i)->get_output()[index].get_typ();
+						const sint64 pfactor = (sint64)myworld->get_fab_list().at(i)->get_desc()->get_product(index)->get_factor();
+						buf.printf("%s ", translator::translate(type->get_name()));
+
+						buf.printf("menge : %d  ", myworld->get_fab_list().at(i)->get_output()[index].menge);
+						buf.printf("max : %d\n ", myworld->get_fab_list().at(i)->get_output()[index].max);
+
+					};
+				};
+
+			};
+
 		};
 
 		if (strcmp(request_info->uri, "/convoy") == 0){
