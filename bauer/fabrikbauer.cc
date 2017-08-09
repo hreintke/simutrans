@@ -234,7 +234,7 @@ bool factory_builder_t::successfully_loaded()
 			find_producer( producer, current->get_supplier(j)->get_input_type(), 0 );
 			if(  producer.is_contained(current)  ) {
 				// must not happen else
-				dbg->fatal( "factory_builder_t::build_link()", "Factory %s output %s cannot be its own input!", i.key, current->get_supplier(j)->get_input_type()->get_name() );
+//				dbg->fatal( "factory_builder_t::build_link()", "Factory %s output %s cannot be its own input!", i.key, current->get_supplier(j)->get_input_type()->get_name() );
 			}
 		}
 		checksum_t *chk = new checksum_t();
