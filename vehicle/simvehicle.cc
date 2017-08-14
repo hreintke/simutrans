@@ -667,7 +667,7 @@ void vehicle_t::set_convoi(convoi_t *c)
  * @return sum of unloaded goods
  * @author Hj. Malthaner
  */
-uint16 vehicle_t::unload_cargo(halthandle_t halt)
+uint16 vehicle_t::unload_cargo(halthandle_t load_halt, halthandle_t halt)
 {
 	uint16 sum_menge = 0, sum_delivered = 0, index = 0;
 	if(  !halt.is_bound()  ) {
@@ -691,6 +691,7 @@ uint16 vehicle_t::unload_cargo(halthandle_t halt)
 					i = fracht.erase( i );
 				}
 				else if(  end_halt == halt || via_halt == halt  ) {
+					DBG_MESSAGE("V_Unload", "%s", halt->get_name());
 
 					//		    printf("Liefere %d %s nach %s via %s an %s\n",
 					//                           tmp->menge,
@@ -700,7 +701,7 @@ uint16 vehicle_t::unload_cargo(halthandle_t halt)
 					//			   halt->get_name());
 
 					// here, only ordinary goods should be processed
-					int menge = halt->liefere_an(tmp);
+					int menge = load_halt->liefere_an(tmp);
 					sum_menge += menge;
 					total_freight -= menge;
 					sum_weight -= tmp.menge * tmp.get_desc()->get_weight_per_unit();

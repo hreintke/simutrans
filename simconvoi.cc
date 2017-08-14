@@ -2824,6 +2824,7 @@ void convoi_t::calc_gewinn()
  */
 void convoi_t::hat_gehalten(halthandle_t halt)
 {
+	DBG_MESSAGE(">>>>HH ", "%s, %s", halt->get_name(), this->get_line()->get_name());
 	grund_t *gr=welt->lookup(fahr[0]->get_pos());
 
 	// now find out station length
@@ -2920,14 +2921,80 @@ station_tile_search_ready: ;
 			owner_p->book_revenue(tmp, fahr[0]->get_pos().get_2d(), get_schedule()->get_waytype(), v->get_cargo_type()->get_index());
 			v->last_stop_pos = v->get_pos();
 		}
+		// Check for goods that can transfer
+		vector_tpl<halthandle_t> filtered_destination_halts = destination_halts;
+		vector_tpl<halthandle_t> unload_destination_halts;
 
-		uint16 amount = v->unload_cargo(halt);
+		// If there is any expressline visiting "this station" and "this line" is a "non express line" 
+		// current good category, higher prio line with this cat ?
+
+		int current_line_prio = 0;
+		if (v->get_convoi()->get_line()->get_name()[0] == '!')
+		{
+			current_line_prio = v->get_convoi()->get_line()->get_name()[1];
+		}
+
+		for (int i = 0; i < halt->registered_lines.get_count(); i++)
+		{
+			int line_prio = 0;
+			if (halt->registered_lines[i]->get_name()[0] == '!')
+			{
+				line_prio = halt->registered_lines[i]->get_name()[1];
+			}
+			if (line_prio > current_line_prio) // higher prio line present
+			{
+				DBG_MESSAGE("LP ", "PLine %s", halt->registered_lines[i]->get_name());
+				// does it serve the goods of this vehicle ?
+				for (int j = 0; j < halt->registered_lines[i]->get_goods_catg_index().get_count(); j++)
+				{
+					if (halt->registered_lines[i]->get_goods_catg_index()[j] == v->get_cargo_type()->get_catg_index())
+					{
+						// this line does, remove the halts from this line from destinatios
+						for (int z = 0; z < halt->registered_lines[i]->get_schedule()->entries.get_count(); z++)
+						{
+							const halthandle_t remove_halt = haltestelle_t::get_halt(halt->registered_lines[i]->get_schedule()->entries[z].pos, owner_p);
+							filtered_destination_halts.remove(remove_halt);
+							unload_destination_halts.append(remove_halt);
+						}
+					}
+				}
+			}
+		}
+		// When a low prio line only serves higher prio stations let it load anyway
+		// Maybe needs update to have serve only lowest prio > own prio ?
+		// Or have this line indeed serving no stations to keep the principle of prio
+		if (filtered_destination_halts.get_count() == 0)
+		{
+			for (int i = 0; i < destination_halts.get_count(); i++)
+			{
+				filtered_destination_halts.append(destination_halts[i]);
+			}
+		}
+
+		DBG_MESSAGE(">>>>Load ", "%s, %s", halt->get_name(), v->get_convoi()->get_line()->get_name());
+		for (int x = 0; x < destination_halts.get_count(); x++)
+		{
+			DBG_MESSAGE("Dest ", "%s", destination_halts[x]->get_name());
+		}
+		for (int x = 0; x < filtered_destination_halts.get_count(); x++)
+		{
+			DBG_MESSAGE("FDest ", "%s", filtered_destination_halts[x]->get_name());
+		}
+		// Maybe update unload_cargo to (load_halt, unload_destinations) -> identical interface as load_cargo
+
+		uint16 amount = v->unload_cargo(halt,halt);
+				
+		for (int i = 0; i < unload_destination_halts.get_count(); i++)
+		{
+			DBG_MESSAGE("Unload ", "%s", unload_destination_halts[i]->get_name());
+			amount += v->unload_cargo(halt, unload_destination_halts[i]);
+		}
 
 		if(  !no_load  &&  v->get_total_cargo() < v->get_cargo_max()) {
 			// load if: unloaded something (might go back) or previous non-filled car requested different cargo type
 			if (amount>0  ||  cargo_type_prev==NULL  ||  !cargo_type_prev->is_interchangeable(v->get_cargo_type())) {
 				// load
-				amount += v->load_cargo(halt, destination_halts);
+				amount += v->load_cargo(halt, filtered_destination_halts);
 			}
 			if (v->get_total_cargo() < v->get_cargo_max()) {
 				// not full
