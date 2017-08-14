@@ -7036,6 +7036,10 @@ struct mg_connection *conn) {
 			myworld->get_active_player()->simlinemgmt.get_lines(simline_t::line, &all_lines);
 			FOR(vector_tpl<linehandle_t>, const line_entry, all_lines) {
 				buf.printf("Line number %d, Line name %s, numconvoys = %d, Type = %d\n", lc, line_entry->get_name(), line_entry->count_convoys(), line_entry->get_linetype());
+				for (int i = 0; i < line_entry->get_goods_catg_index().get_count();i++)
+				{
+					buf.printf("catg index = %d\n", line_entry->get_goods_catg_index()[i]);
+				}
 				schedule_t *fpl;
 				fpl = line_entry->get_schedule();
 				const uint8 count = fpl->get_count();
