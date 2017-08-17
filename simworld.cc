@@ -6952,7 +6952,15 @@ struct mg_connection *conn) {
 			int cc = 0;
 			FOR(vector_tpl<convoihandle_t>, const cnv, myworld->convoys()) {
 
-				buf.printf("cnv number = %d, cnv name = %s, year profit %d\n", cc++, cnv->get_name(), cnv->get_jahresgewinn());
+				buf.printf("cnv number = %d, cnv name = %s, year profit = %d", cc++, cnv->get_name(), cnv->get_jahresgewinn());
+				if (cnv->get_line().is_bound())
+				{
+					buf.printf(" Line = %s\n", cnv->get_line()->get_name());
+				}
+				else
+				{
+					buf.printf(" LineLess\n");
+				}
 				for (int i = 0; i < cnv->get_vehicle_count(); i++) {
 					buf.printf("   veh %d, %s %s", i,
 						translator::translate(cnv->get_vehikel(i)->get_desc()->get_name()),
@@ -7059,7 +7067,9 @@ struct mg_connection *conn) {
 		if (strcmp(request_info->uri, "/halt") == 0){
 			int hc = 0;
 			FOR(vector_tpl<halthandle_t>, const s, haltestelle_t::get_alle_haltestellen()) {
-				buf.printf("Halt number %d, ID = %d, Halt %s, capacity = %d ", hc, s.get_id(), s->get_name(), s->get_capacity(0));
+				DBG_MESSAGE("--- HLT ", "%s", s->get_name());
+				s->rebuild_connections();
+				buf.printf("\nHalt number %d, ID = %d, Halt %s, capacity = %d ", hc, s.get_id(), s->get_name(), s->get_capacity(0));
 				cbuffer_t h;
 				s->get_short_freight_info(h);
 				buf.append(h); // includes final newline
@@ -7076,12 +7086,33 @@ struct mg_connection *conn) {
 					}
 					buf.printf("\n");
 				};
+				s->rebuild_connections();
 				for (unsigned i = 0; i<goods_manager_t::get_max_catg_index(); i++) {
 					if (s->all_links[i].connections.get_count() > 0) {
 						buf.printf("ctg_idex %d, catg %s, conn %d, concount %d\n", i,
 							translator::translate(goods_manager_t::get_info_catg_index(i)->get_catg_name()),
 							s->all_links[i].catg_connected_component,
 							s->all_links[i].connections.get_count());
+						for (int j = 0; j < s->all_links[i].connections.get_count(); j++)
+						{
+							buf.printf("conn %d, %s, t = %d, wgt = %d", j, s->all_links[i].connections[j].halt->get_name(), s->all_links[i].connections[j].is_transfer,s->all_links[i].connections[j].weight);
+							buf.printf(" C = %d", s->all_links[i].connections[j].connection_lines->get_count());
+							if (s->all_links[i].connections[j].connection_lines->get_count() > 0)
+							{
+								for (int z = 0; z < s->all_links[i].connections[j].connection_lines->get_count(); z++)
+								{
+									buf.printf(" cnl = %s", (*s->all_links[i].connections[j].connection_lines)[z]->get_name());
+								}
+							}
+							if (s->all_links[i].connections[j].connection_convoys->get_count() > 0)
+							{
+								for (int z = 0; z < s->all_links[i].connections[j].connection_convoys->get_count(); z++)
+								{
+									buf.printf(" cnv = %s", (*s->all_links[i].connections[j].connection_convoys)[z]->get_name());
+								}
+							}
+							buf.printf("\n");
+						}
 					};
 				};
 				hc++;
