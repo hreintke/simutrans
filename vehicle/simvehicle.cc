@@ -755,7 +755,12 @@ uint16 vehicle_t::load_cargo(halthandle_t halt, const vector_tpl<halthandle_t>& 
 	if (capacity_left > 0) {
 
 		slist_tpl<ware_t> freight_add;
-		halt->fetch_goods( freight_add, desc->get_freight_type(), capacity_left, destination_halts);
+		if (cnv->get_line().is_bound()) {
+			halt->fetch_goods(freight_add, desc->get_freight_type(), capacity_left, destination_halts, cnv->get_line());
+		}
+		else {
+			halt->fetch_goods(freight_add, desc->get_freight_type(), capacity_left, destination_halts, convoihandle_t(cnv));
+		}
 
 		if(  freight_add.empty()  ) {
 			// now empty, but usually, we can get it here ...

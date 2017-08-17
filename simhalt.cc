@@ -1051,7 +1051,7 @@ void haltestelle_t::remove_fabriken(fabrik_t *fab)
  * Returns the number of stops considered
  * @author Hj. Malthaner
  */
-#define WEIGHT_WAIT (8)
+#define WEIGHT_WAIT (2)
 #define WEIGHT_HALT (1)
 // the minimum weight of a connection from a transfer halt
 #define WEIGHT_MIN (WEIGHT_WAIT+WEIGHT_HALT)
@@ -1143,7 +1143,7 @@ sint32 haltestelle_t::rebuild_connections()
 		}
 
 		INT_CHECK("simhalt.cc 612");
-
+		DBG_MESSAGE("+++ SCL ", "%s", registered_lines[current_index - 1]->get_name());
 		// now we add the schedule to the connection array
 		uint16 aggregate_weight = WEIGHT_WAIT;
 		for(  uint8 j=0;  j<schedule->get_count();  ++j  ) {
@@ -1179,8 +1179,35 @@ sint32 haltestelle_t::rebuild_connections()
 					previous_halt[catg_index] = current_halt;
 
 					// either add a new connection or update the weight of an existing connection where necessary
-					connection_t *const existing_connection = all_links[catg_index].connections.insert_unique_ordered( connection_t( current_halt, aggregate_weight ), connection_t::compare );
+					DBG_MESSAGE("+++ NC ", "%s, aw = %d ci = %d", current_halt->get_name(), aggregate_weight, current_index - 1);
+					connection_t* existing_connection;
+					if (lines)
+					{
+						existing_connection = all_links[catg_index].connections.insert_unique_ordered(connection_t(current_halt, aggregate_weight, registered_lines[current_index - 1]), connection_t::compare);
+					}
+					else
+					{
+						existing_connection = all_links[catg_index].connections.insert_unique_ordered(connection_t(current_halt, aggregate_weight, registered_convoys[current_index - 1]), connection_t::compare);
+					}
+
+					if (existing_connection  &&  aggregate_weight == existing_connection->weight) {
+						if (lines) {
+							existing_connection->connection_lines->append(registered_lines[current_index - 1]);
+						}
+						else {
+							existing_connection->connection_convoys->append(registered_convoys[current_index - 1]);
+						}	
+					}
+
 					if(  existing_connection  &&  aggregate_weight<existing_connection->weight  ) {
+						existing_connection->connection_lines->clear();
+						existing_connection->connection_convoys->clear();
+						if (lines) {
+							existing_connection->connection_lines->append(registered_lines[current_index - 1]);
+						}
+						else {
+							existing_connection->connection_convoys->append(registered_convoys[current_index - 1]);
+						}
 						existing_connection->weight = aggregate_weight;
 					}
 				}
@@ -1876,82 +1903,149 @@ bool haltestelle_t::recall_ware( ware_t& w, uint32 menge )
 	return false;
 }
 
+void haltestelle_t::fetch_goods(slist_tpl<ware_t> &load, const goods_desc_t *good_category, uint32 requested_amount, const vector_tpl<halthandle_t>& destination_halts)
+{
+	fetch_goods(load, good_category, requested_amount, destination_halts, linehandle_t(), convoihandle_t());
+}
+
+void haltestelle_t::fetch_goods(slist_tpl<ware_t> &load, const goods_desc_t *good_category, uint32 requested_amount, const vector_tpl<halthandle_t>& destination_halts, convoihandle_t reqConvoi)
+{
+	fetch_goods(load, good_category, requested_amount, destination_halts,linehandle_t(), reqConvoi);
+}
+
+void haltestelle_t::fetch_goods(slist_tpl<ware_t> &load, const goods_desc_t *good_category, uint32 requested_amount, const vector_tpl<halthandle_t>& destination_halts, linehandle_t reqLine)
+{
+	fetch_goods(load, good_category, requested_amount, destination_halts, reqLine, convoihandle_t());
+}
 
 
-void haltestelle_t::fetch_goods( slist_tpl<ware_t> &load, const goods_desc_t *good_category, uint32 requested_amount, const vector_tpl<halthandle_t>& destination_halts)
+void haltestelle_t::fetch_goods(slist_tpl<ware_t> &load, const goods_desc_t *good_category, uint32 requested_amount, const vector_tpl<halthandle_t>& destination_halts, linehandle_t reqLine, convoihandle_t reqConvoi)
 {
 	// prissi: first iterate over the next stop, then over the ware
 	// might be a little slower, but ensures that passengers to nearest stop are served first
 	// this allows for separate high speed and normal service
-	vector_tpl<ware_t> *warray = cargo[good_category->get_catg_index()];
 
-	if(  warray  &&  !warray->empty()  ) {
-		for(  uint32 i=0; i < destination_halts.get_count();  i++  ) {
+	vector_tpl<ware_t> *warray = cargo[good_category->get_catg_index()];
+	if (reqLine.is_bound())
+	{
+		DBG_MESSAGE("+++ FGL ", "H = %s, L = %s", get_name(),reqLine->get_name());
+	}
+	if (reqConvoi.is_bound())
+	{
+		DBG_MESSAGE("+++ FGL ", "H = %s, L = %s", get_name(), reqConvoi->get_name());
+	}
+	
+	for (uint32 i = 0; i < destination_halts.get_count(); i++) {
+		DBG_MESSAGE("+++  FGS ", "%s", destination_halts[i]->get_name());
+	}
+
+		if (warray  &&  !warray->empty()) {
+
+		for (uint32 i = 0; i < destination_halts.get_count(); i++) {
 			halthandle_t plan_halt = destination_halts[i];
 
-				// The random offset will ensure that all goods have an equal chance to be loaded.
-				uint32 offset = simrand(warray->get_count());
-				for(  uint32 i=0;  i<warray->get_count();  i++  ) {
-					ware_t &tmp = (*warray)[ i+offset ];
-
-					// prevent overflow (faster than division)
-					if(  i+offset+1>=warray->get_count()  ) {
-						offset -= warray->get_count();
+			// find the connection for this destination
+			// is this line the in the considered lines ? yes -> load, no -> return
+			bool ok_to_load = false;
+			for (int i = 0; i < all_links[good_category->get_catg_index()].connections.get_count(); i++)
+			{
+				if (all_links[good_category->get_catg_index()].connections[i].halt == plan_halt)
+				{
+					DBG_MESSAGE("+++ Fetch Goods ", "plan_halt %s, conn = %d",plan_halt->get_name(), i);
+					for (int j = 0; (reqLine.is_bound() && (j < all_links[good_category->get_catg_index()].connections[i].connection_lines->get_count())); j++)
+					{
+						if ( (*all_links[good_category->get_catg_index()].connections[i].connection_lines)[j] == reqLine)
+						{
+							DBG_MESSAGE("+++ FG ", "line %s is OK", reqLine->get_name());
+							ok_to_load = true;
+							break;
+						}
+					}
+					for (int j = 0; ( reqConvoi.is_bound() && (j < all_links[good_category->get_catg_index()].connections[i].connection_convoys->get_count())); j++)
+					{
+						if ((*all_links[good_category->get_catg_index()].connections[i].connection_convoys)[j].get_rep() == reqConvoi.get_rep())
+						{		
+							
+							DBG_MESSAGE("+++ FG ", "Convoy %s is OK", reqConvoi->get_name());
+							ok_to_load = true;
+							break;
+						}
+						else
+						{
+							DBG_MESSAGE("+++ FG ", "Convoy %s is rejected", reqConvoi->get_name());
+							DBG_MESSAGE("+++ FG ", "compared %s", (*all_links[good_category->get_catg_index()].connections[i].connection_convoys)[j]->get_name());
+						}
 					}
 
-					// skip empty entries
-					if(tmp.menge==0) {
+				}
+			}
+
+			if (!ok_to_load) continue; // don't load for  this destination 
+			
+//			DBG_MESSAGE("+++ FFF ", "Loading %s, Line %s", plan_halt->get_name(),reqLine->get_name());
+
+			// The random offset will ensure that all goods have an equal chance to be loaded.
+			uint32 offset = simrand(warray->get_count());
+			for (uint32 i = 0; i<warray->get_count(); i++) {
+				ware_t &tmp = (*warray)[i + offset];
+
+				// prevent overflow (faster than division)
+				if (i + offset + 1 >= warray->get_count()) {
+					offset -= warray->get_count();
+				}
+
+				// skip empty entries
+				if (tmp.menge == 0) {
+					continue;
+				}
+
+				// goods without route -> returning passengers/mail
+				if (!tmp.get_zwischenziel().is_bound()) {
+					search_route_resumable(tmp);
+					if (!tmp.get_ziel().is_bound()) {
+						// no route anymore
+						tmp.menge = 0;
 						continue;
 					}
+				}
 
-					// goods without route -> returning passengers/mail
-					if(  !tmp.get_zwischenziel().is_bound()  ) {
-						search_route_resumable(tmp);
-						if (!tmp.get_ziel().is_bound()) {
-							// no route anymore
-							tmp.menge = 0;
+				// compatible car and right target stop?
+				if (tmp.get_zwischenziel() == plan_halt) {
+					if (plan_halt->is_overcrowded(tmp.get_index())) {
+						if (welt->get_settings().is_avoid_overcrowding() && tmp.get_ziel() != plan_halt) {
+							// do not go for transfer to overcrowded transfer stop
 							continue;
 						}
 					}
 
-					// compatible car and right target stop?
-					if(  tmp.get_zwischenziel()==plan_halt  ) {
-						if(  plan_halt->is_overcrowded( tmp.get_index() )  ) {
-							if (welt->get_settings().is_avoid_overcrowding() && tmp.get_ziel() != plan_halt) {
-								// do not go for transfer to overcrowded transfer stop
-								continue;
-							}
-						}
+					// not too much?
+					ware_t neu(tmp);
+					if (tmp.menge > requested_amount) {
+						// not all can be loaded
+						neu.menge = requested_amount;
+						tmp.menge -= requested_amount;
+						requested_amount = 0;
+					}
+					else {
+						requested_amount -= tmp.menge;
+						// leave an empty entry => joining will more often work
+						tmp.menge = 0;
+					}
+					load.insert(neu);
 
-						// not too much?
-						ware_t neu(tmp);
-						if(  tmp.menge > requested_amount  ) {
-							// not all can be loaded
-							neu.menge = requested_amount;
-							tmp.menge -= requested_amount;
-							requested_amount = 0;
-						}
-						else {
-							requested_amount -= tmp.menge;
-							// leave an empty entry => joining will more often work
-							tmp.menge = 0;
-						}
-						load.insert(neu);
+					book(neu.menge, HALT_DEPARTED);
+					resort_freight_info = true;
 
-						book(neu.menge, HALT_DEPARTED);
-						resort_freight_info = true;
-
-						if (requested_amount==0) {
-							return;
-						}
+					if (requested_amount == 0) {
+						return;
 					}
 				}
+			}
 
-				// nothing there to load
+			// nothing there to load
 		}
 	}
 }
-
 
 
 uint32 haltestelle_t::get_ware_summe(const goods_desc_t *wtyp) const
