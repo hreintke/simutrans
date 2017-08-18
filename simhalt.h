@@ -231,9 +231,27 @@ public:
 		uint16 weight:15;
 		/// is halt a transfer halt
 		bool is_transfer:1;
+//		vector_tpl<linehandle_t> &cl;
 
-		connection_t() : weight(0), is_transfer(false) { }
-		connection_t(halthandle_t _halt, uint16 _weight=0) : halt(_halt), weight(_weight), is_transfer(false) { }
+		vector_tpl<linehandle_t>* connection_lines;
+		vector_tpl<convoihandle_t>* connection_convoys;
+
+		connection_t() 
+			: weight(0), is_transfer(false), connection_lines(new vector_tpl<linehandle_t>), connection_convoys(new vector_tpl<convoihandle_t>){}
+		connection_t(halthandle_t _halt, uint16 _weight = 0) 
+			: halt(_halt), weight(_weight), is_transfer(false), connection_lines(new vector_tpl<linehandle_t>), connection_convoys(new vector_tpl<convoihandle_t>){ }
+		connection_t(halthandle_t _halt, uint16 _weight, linehandle_t _cline) 
+			: halt(_halt), weight(_weight), is_transfer(false), connection_lines(new vector_tpl<linehandle_t>), connection_convoys(new vector_tpl<convoihandle_t>)
+		{
+			connection_lines->append(_cline);
+		}
+		connection_t(halthandle_t _halt, uint16 _weight, convoihandle_t _cconvoi)
+			: halt(_halt), weight(_weight), is_transfer(false), connection_lines(new vector_tpl<linehandle_t>), connection_convoys(new vector_tpl<convoihandle_t>)
+		{
+			connection_convoys->append(_cconvoi);
+		}
+
+
 
 		bool operator == (const connection_t &other) const { return halt == other.halt; }
 		bool operator != (const connection_t &other) const { return halt != other.halt; }
@@ -639,8 +657,10 @@ public:
 	 * @param sp Company that's requesting the fetch.
 	 * @author Dwachs
 	 */
-	void fetch_goods( slist_tpl<ware_t> &load, const goods_desc_t *good_category, uint32 requested_amount, const vector_tpl<halthandle_t>& destination_halts);
-
+	void fetch_goods(slist_tpl<ware_t> &load, const goods_desc_t *good_category, uint32 requested_amount, const vector_tpl<halthandle_t>& destination_halts);
+	void fetch_goods(slist_tpl<ware_t> &load, const goods_desc_t *good_category, uint32 requested_amount, const vector_tpl<halthandle_t>& destination_halts, linehandle_t reqLine);
+	void fetch_goods(slist_tpl<ware_t> &load, const goods_desc_t *good_category, uint32 requested_amount, const vector_tpl<halthandle_t>& destination_halts, convoihandle_t reqConvoi);
+	void fetch_goods(slist_tpl<ware_t> &load, const goods_desc_t *good_category, uint32 requested_amount, const vector_tpl<halthandle_t>& destination_halts, linehandle_t reqLine, convoihandle_t reqConvoi);
 	/* liefert ware an. Falls die Ware zu wartender Ware dazugenommen
 	 * werden kann, kann ware_t gelöscht werden! D.h. man darf ware nach
 	 * aufruf dieser Methode nicht mehr referenzieren!
