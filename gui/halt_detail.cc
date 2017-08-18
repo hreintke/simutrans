@@ -301,6 +301,26 @@ void halt_detail_t::halt_detail_info()
 					has_stops = true;
 
 					buf.printf("   %s <%u>", conn.halt->get_name(), conn.weight);
+					for (int i = 0; i < conn.connection_lines->get_count(); i++)
+					{
+						if (i == 0) {
+							buf.printf(" ");
+						}
+						else {
+							buf.printf(", ");
+						}
+						buf.printf("%s", (*conn.connection_lines)[i]->get_name());
+					}
+					for (int i = 0; i < conn.connection_convoys->get_count(); i++)
+					{
+						if (i == 0) {
+							buf.printf(" ");
+						}
+						else {
+							buf.printf(", ");
+						}
+						buf.printf("%s", (*conn.connection_convoys)[i]->get_name());
+					}
 
 					// target button ...
 					button_t *pb = new button_t();
