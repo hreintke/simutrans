@@ -59,6 +59,21 @@ fabrik_info_t::fabrik_info_t(fabrik_t* fab_, const gebaeude_t* gb) :
 
 	const sint16 offset_below_viewport = D_MARGIN_TOP+D_BUTTON_HEIGHT+D_V_SPACE+ max( prod.get_size().h, view.get_size().h + 8 ) + D_V_SPACE;
 
+	if (fab->get_lieferziele().get_count() > 0){
+		highlight_consumer_button.init(button_t::roundbox_state, "Consumers", scr_coord(BUTTON1_X, offset_below_viewport));
+		highlight_consumer_button.set_tooltip("Highlight consumers");
+		highlight_consumer_button.add_listener(this);
+		add_component(&highlight_consumer_button);
+	}
+
+	if (fab->get_suppliers().get_count() > 0){
+		highlight_supplier_button.init(button_t::roundbox_state, "Suppliers", scr_coord(BUTTON2_X, offset_below_viewport));
+		highlight_supplier_button.set_tooltip("Highlight suppliers");
+		highlight_supplier_button.add_listener(this);
+		add_component(&highlight_supplier_button);
+	}
+
+	
 	chart.set_pos( scr_coord(0, offset_below_viewport) );
 	chart_button.init(button_t::roundbox_state, "Chart", scr_coord(BUTTON3_X,offset_below_viewport));
 	chart_button.set_tooltip("Show/hide statistics");
@@ -98,6 +113,9 @@ fabrik_info_t::fabrik_info_t(fabrik_t* fab_, const gebaeude_t* gb) :
 
 fabrik_info_t::~fabrik_info_t()
 {
+	highlight(fab->get_lieferziele(), false);
+	highlight(fab->get_suppliers(), false);
+	
 	rename_factory();
 	fabname[0] = 0;
 
@@ -206,6 +224,33 @@ bool fabrik_info_t::is_weltpos()
 	return ( welt->get_viewport()->is_on_center( get_weltpos(false) ) );
 }
 
+void fabrik_info_t::highlight(vector_tpl<koord> fab_koords, bool marking) {
+
+	for (int i = 0; i < fab_koords.get_count(); i++) {
+		vector_tpl<koord> fab_tiles;
+		fab->get_fab(fab_koords[i])->get_tile_list(fab_tiles);
+
+		for (int y = 0; y < fab_tiles.get_count(); y++)
+		{
+			if (grund_t* const gr = welt->lookup(koord3d(fab_tiles[y], 0)))
+			{
+				for (uint idx = 0; idx < gr->get_top(); idx++) {
+					obj_t *obj = gr->obj_bei(idx);
+					if (marking) {
+						if (!obj->is_moving()) {
+							obj->set_flag(obj_t::highlight);
+						}
+					}
+					else {
+						obj->clear_flag(obj_t::highlight);
+					}
+				}
+				gr->set_flag(grund_t::dirty);
+			}
+		}
+	}
+}
+
 
 /**
  * This method is called if an action is triggered
@@ -217,7 +262,15 @@ bool fabrik_info_t::is_weltpos()
  */
 bool fabrik_info_t::action_triggered( gui_action_creator_t *comp, value_t v)
 {
-	if(comp == &chart_button) {
+	if (comp == &highlight_consumer_button){
+		highlight_consumer_button.pressed ^= 1;
+		highlight(fab->get_lieferziele(), highlight_consumer_button.pressed);
+	}
+	else if (comp == &highlight_supplier_button){
+		highlight_supplier_button.pressed ^= 1;
+		highlight(fab->get_suppliers(), highlight_supplier_button.pressed);
+	}
+	else if(comp == &chart_button) {
 		chart_button.pressed ^= 1;
 		if(  !chart_button.pressed  ) {
 			remove_component( &chart );
@@ -229,6 +282,8 @@ bool fabrik_info_t::action_triggered( gui_action_creator_t *comp, value_t v)
 		set_min_windowsize(get_min_windowsize() + offset);
 		chart_button.set_pos( chart_button.get_pos() + offset );
 		details_button.set_pos( details_button.get_pos() + offset );
+		highlight_consumer_button.set_pos(highlight_consumer_button.get_pos() + offset);
+		highlight_supplier_button.set_pos(highlight_supplier_button.get_pos() + offset);
 		scrolly.set_pos( scrolly.get_pos() + offset );
 		resize( scr_coord(0,(chart_button.pressed ? chart.get_size().h : -chart.get_size().h) ) );
 	}
