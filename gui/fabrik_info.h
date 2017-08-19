@@ -60,6 +60,8 @@ private:
 	button_t chart_button;
 
 	button_t details_button;
+	button_t highlight_consumer_button;
+	button_t highlight_supplier_button;
 
 	obj_view_t view;
 
@@ -97,6 +99,8 @@ public:
 	virtual bool is_weltpos();
 
 	virtual void set_windowsize(scr_size size);
+
+	void highlight(vector_tpl<koord> fab_koords, bool marking);
 
 	/**
 	* Draw new component. The values to be passed refer to the window
