@@ -226,6 +226,10 @@ bool fabrik_info_t::is_weltpos()
 
 void fabrik_info_t::highlight(vector_tpl<koord> fab_koords, bool marking) {
 
+	// also highlight current fab
+
+	fab_koords.append(fab->get_pos().get_2d());
+
 	for (int i = 0; i < fab_koords.get_count(); i++) {
 		vector_tpl<koord> fab_tiles;
 		fab->get_fab(fab_koords[i])->get_tile_list(fab_tiles);
